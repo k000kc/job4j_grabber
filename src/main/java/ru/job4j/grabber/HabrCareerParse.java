@@ -6,7 +6,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import ru.job4j.utils.DateTimeParser;
-import ru.job4j.utils.HabrCareerDateTimeParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,7 +30,7 @@ public class HabrCareerParse implements Parse {
         try {
             for (int i = 1; i <= PAGE_NUMBER; i++) {
                 String fullLink = "%s%s%d%s".formatted(link, PREFIX, i, SUFFIX);
-                Connection connection = Jsoup.connect(fullLink).timeout(180000);
+                Connection connection = Jsoup.connect(fullLink);
                 Document document = connection.get();
                 Elements rows = document.select(".vacancy-card__inner");
                 for (Element row : rows) {
@@ -60,14 +59,5 @@ public class HabrCareerParse implements Parse {
         Document document = connection.get();
         Element description = document.select(".vacancy-description__text").first();
         return description.text();
-    }
-
-    public static void main(String[] args) {
-        DateTimeParser dateTimeParser = new HabrCareerDateTimeParser();
-        Parse careerParse = new HabrCareerParse(dateTimeParser);
-        List<Post> posts = careerParse.list(SOURCE_LINK);
-        for (Post post : posts) {
-            System.out.println(post);
-        }
     }
 }

@@ -1,8 +1,6 @@
 package ru.job4j.grabber;
 
-import java.io.InputStream;
 import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -87,24 +85,6 @@ public class PsqlStore implements Store {
     public void close() throws Exception {
         if (connection != null) {
             connection.close();
-        }
-    }
-
-    public static void main(String[] args) {
-        try (InputStream input = PsqlStore.class.getClassLoader().getResourceAsStream("grabber.properties")) {
-            Properties config = new Properties();
-            config.load(input);
-            Store store = new PsqlStore(config);
-            Post post1 = new Post("java middle", "link1", "Job description 1", LocalDateTime.now());
-            Post post2 = new Post("java junior", "link2", "Job description 2", LocalDateTime.now());
-            store.save(post1);
-            store.save(post2);
-            System.out.println("list of vacancies:");
-            store.getAll().forEach(System.out::println);
-            System.out.println("found a vacancies:");
-            System.out.println(store.findById(1));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 }
