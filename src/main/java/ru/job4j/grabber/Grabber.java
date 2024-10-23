@@ -4,7 +4,11 @@ import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import ru.job4j.utils.HabrCareerDateTimeParser;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Properties;
 
 import static org.quartz.JobBuilder.newJob;
@@ -42,10 +46,10 @@ public class Grabber implements Grab {
         scheduler.scheduleJob(job, trigger);
         try {
             Thread.sleep(10000);
+            scheduler.shutdown();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        scheduler.shutdown();
     }
 
     public static class GrabJob implements Job {
@@ -59,6 +63,27 @@ public class Grabber implements Grab {
         }
     }
 
+    public void web(Properties cfg, Store store) {
+        new Thread(() -> {
+            try (ServerSocket server = new ServerSocket(Integer.parseInt(cfg.getProperty("port")))) {
+                while (!server.isClosed()) {
+                    Socket socket = server.accept();
+                    try (OutputStream out = socket.getOutputStream()) {
+                        out.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
+                        for (Post post : store.getAll()) {
+                            out.write(post.toString().getBytes());
+                            out.write(System.lineSeparator().getBytes());
+                        }
+                    } catch (IOException io) {
+                        io.printStackTrace();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     public static void main(String[] args) throws Exception {
         var config = new Properties();
         try (InputStream input = Grabber.class.getClassLoader()
@@ -70,6 +95,8 @@ public class Grabber implements Grab {
         var parse = new HabrCareerParse(new HabrCareerDateTimeParser());
         var store = new PsqlStore(config);
         var time = Integer.parseInt(config.getProperty("time"));
-        new Grabber(parse, store, scheduler, time).init();
+        Grabber grabber = new Grabber(parse, store, scheduler, time);
+        grabber.init();
+        grabber.web(config, store);
     }
 }
